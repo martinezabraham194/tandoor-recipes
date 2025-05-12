@@ -1,111 +1,185 @@
-<h1 align="center">
-  <br>
-  <a href="https://tandoor.dev"><img src="https://github.com/vabene1111/recipes/raw/develop/docs/logo_color.svg" height="256px" width="256px"></a>
-  <br>
-  Tandoor Recipes
-  <br>
-</h1>
+# Tandoor Recipes Deployment Guide
 
-<h4 align="center">The recipe manager that allows you to manage your ever growing collection of digital recipes.</h4>
+<!-- filepath: README.md -->
 
-<p align="center">
-<a href="https://github.com/vabene1111/recipes/actions" target="_blank" rel="noopener noreferrer"><img src="https://github.com/vabene1111/recipes/workflows/Continuous%20Integration/badge.svg?branch=master" ></a>
-<a href="https://github.com/vabene1111/recipes/stargazers" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/stars/vabene1111/recipes" ></a>
-<a href="https://github.com/vabene1111/recipes/network/members" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/forks/vabene1111/recipes" ></a>
-<a href="https://discord.gg/RhzBrfWgtp" target="_blank" rel="noopener noreferrer"><img src="https://badgen.net/badge/icon/discord?icon=discord&label" ></a>
-<a href="https://hub.docker.com/r/vabene1111/recipes" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/docker/pulls/vabene1111/recipes" ></a>
-<a href="https://github.com/vabene1111/recipes/releases/latest" rel="noopener noreferrer"><img src="https://img.shields.io/github/v/release/vabene1111/recipes" ></a>
-<a href="https://app.tandoor.dev/accounts/login/?demo" rel="noopener noreferrer"><img src="https://img.shields.io/badge/demo-available-success" ></a>
-</p>
+This guide provides step-by-step instructions for deploying Tandoor Recipes to Google Cloud Run with a Supabase PostgreSQL database.
 
-<p align="center">
-<a href="https://tandoor.dev" target="_blank" rel="noopener noreferrer">Website</a> •
-<a href="https://docs.tandoor.dev/install/docker/" target="_blank" rel="noopener noreferrer">Installation</a> •
-<a href="https://docs.tandoor.dev/" target="_blank" rel="noopener noreferrer">Docs</a> •
-<a href="https://app.tandoor.dev/accounts/login/?demo" target="_blank" rel="noopener noreferrer">Demo</a> •
-<a href="https://discord.gg/RhzBrfWgtp" target="_blank" rel="noopener noreferrer">Discord</a>
-</p>
+## Prerequisites
 
-![Preview](docs/preview.png)
+- Google Cloud Platform account with billing enabled
+- Supabase account with a PostgreSQL database
+- Docker installed locally
+- Google Cloud CLI (`gcloud`) installed and configured
 
-## Core Features
-- 🥗 **Manage your recipes** - Manage your ever growing recipe collection
-- 📆 **Plan** - multiple meals for each day
-- 🛒 **Shopping lists** - via the meal plan or straight from recipes
-- 📚 **Cookbooks** - collect recipes into books
-- 👪 **Share and collaborate** on recipes with friends and family
+## Database Setup
 
-## Made by and for power users
+1. Create a PostgreSQL database in Supabase
+2. Note the connection information:
+   - Host: `aws-0-us-east-1.pooler.supabase.com`
+   - Port: `5432`
+   - Database: `postgres`
+   - Username: `postgres.rhrjaxnzwuuxfgijzqxz`
+   - Password: `your-database-password`
 
-- 🔍 Powerful & customizable **search** with fulltext support and [TrigramSimilarity](https://docs.djangoproject.com/en/3.0/ref/contrib/postgres/search/#trigram-similarity)
-- 🏷️ Create and search for **tags**, assign them in batch to all files matching certain filters
-- ↔️ Quickly merge and rename ingredients, tags and units
-- 📥️ **Import recipes** from thousands of websites supporting [ld+json or microdata](https://schema.org/Recipe)
-- ➗ Support for **fractions** or decimals
-- 🐳 Easy setup with **Docker** and included examples for **Kubernetes**, **Unraid** and **Synology**
-- 🎨 Customize your interface with **themes**
-- 📦 **Sync** files with Dropbox and Nextcloud
+## Environment Configuration
 
-## All the must haves
+1. Create an env_vars.yaml file with the following content:
 
-- 📱Optimized for use on **mobile** devices
-- 🌍 localized in many languages thanks to the awesome community
-- 📥️ **Import your collection** from many other [recipe managers](https://docs.tandoor.dev/features/import_export/)
-- ➕ Many more like recipe scaling, image compression, printing views and supermarkets
+```yaml
+# allowed hosts
+ALLOWED_HOSTS: "*.run.app,tandoor-59868711850.us-east4.run.app,localhost"
 
-This application is meant for people with a collection of recipes they want to share with family and friends or simply
-store them in a nicely organized way. A basic permission system exists but this application is not meant to be run as
-a public page.
+# database connection
+DATABASE_URL: "postgresql://postgres.rhrjaxnzwuuxfgijzqxz:your-database-password@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require"
 
-## Docs
+# connection stability
+CONN_MAX_AGE: "60"
+POSTGRES_OPTIONS: '{"sslmode":"require", "keepalives":1, "keepalives_idle":30, "keepalives_interval":10, "keepalives_count":5}'
+DB_TIMEOUT: "180"
 
-Documentation can be found [here](https://docs.tandoor.dev/).
+# social authentication settings
+SOCIAL_PROVIDERS: "allauth.socialaccount.providers.google"
+AUTHENTICATION_BACKENDS: "django.contrib.auth.backends.ModelBackend,allauth.account.auth_backends.AuthenticationBackend"
+SITE_ID: "1"
+ACCOUNT_EMAIL_VERIFICATION: "none"
+ENABLE_SIGNUP: "1"
+LOGIN_REDIRECT_URL: "/"
+ACCOUNT_ALLOW_REGISTRATION: "True"
+SOCIALACCOUNT_AUTO_SIGNUP: "True"
+SOCIALACCOUNT_PROVIDERS: '{"google": {"SCOPE": ["profile", "email"], "AUTH_PARAMS": {"access_type": "online"}}}'
 
-## Support our work
-Tandoor is developed by volunteers in their free time just because its fun. That said earning
-some money with the project allows us to spend more time on it and thus make improvements we otherwise couldn't.
-Because of that there are several ways you can support us
+# debugging (remove in production)
+DEBUG: "1"
 
-- **GitHub Sponsors** You can sponsor contributors of this project on GitHub: [vabene1111](https://github.com/sponsors/vabene1111)
-- **Host at Hetzner** We have been very happy customers of Hetzner for multiple years for all of our projects. If you want to get into self-hosting or are tired of the expensive big providers, their cloud servers are a great place to get started. When you sign up via our [referral link](https://hetzner.cloud/?ref=ISdlrLmr9kGj) you will get 20€ worth of cloud credits and we get a small kickback too.
-- **Let us host for you** We are offering a [hosted version](https://app.tandoor.dev) where all profits support us and the development of tandoor (currently only available in germany).
+# email settings
+EMAIL_HOST: "smtp.gmail.com"
+EMAIL_PORT: "587"
+EMAIL_USE_TLS: "1"
+EMAIL_HOST_USER: "your-email@gmail.com"
+EMAIL_HOST_PASSWORD: "your-app-password"
+DEFAULT_FROM_EMAIL: "your-email@gmail.com"
+```
 
-## Contributing
-Contributions are welcome but please read [this](https://docs.tandoor.dev/contribute/guidelines/) **BEFORE** contributing anything!
+## Dockerfile
 
-## Your Feedback
+Create a Dockerfile with the following content:
 
-Share some information on how you use Tandoor to help me improve the application [Google Survey](https://forms.gle/qNfLK2tWTeWHe9Qd7)
+```dockerfile
+FROM ghcr.io/tandoorrecipes/recipes:master
 
-## Get in touch
+# Install additional dependencies
+RUN pip install firebase-admin==6.5.0 supabase==2.7.4
 
-<table>
-  <tr>
-    <td><a href="https://discord.gg/RhzBrfWgtp">Discord</a></td>
-    <td>We have a public Discord server that anyone can join. This is where all our developers and contributors hang out and where we make announcements</td>
-  </tr>
+# Install additional dependencies including bash and curl
+RUN apk add --no-cache bash curl jq postgresql-client ca-certificates
 
-  <tr>
-    <td><a href="https://twitter.com/TandoorRecipes">Twitter</a></td>
-    <td>You can follow our Twitter account to get updates on new features or releases</td>
-  </tr>
-</table>
+# Create the mediafiles directory
+RUN mkdir -p /opt/recipes/mediafiles && chmod 755 /opt/recipes/mediafiles
 
-## License
+# Permanently patch the settings.py file to handle Supabase usernames with periods
+RUN sed -i 's/\((?P<user>\[\\w\\d_-\]+\)/\((?P<user>\[\\w\\d_.-\]+\)/g' /opt/recipes/recipes/settings.py
 
-Beginning with version 0.10.0 the code in this repository is licensed under the [GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.de.html) license with a
-[common clause](https://commonsclause.com/) selling exception. See [LICENSE.md](https://github.com/vabene1111/recipes/blob/develop/LICENSE.md) for details.
+# Set Gunicorn parameters
+ENV GUNICORN_CMD_ARGS="--workers=1 --threads=4"
+```
 
-> NOTE: There appears to be a whole range of legal issues with licensing anything other than the standard completely open licenses.
-> I am in the process of getting some professional legal advice to sort out these issues. 
-> Please also see [Issue 238](https://github.com/vabene1111/recipes/issues/238) for some discussion and **reasoning** regarding the topic.
+## Deployment Script
 
-**Reasoning**
-**This software and *all* its features are and will always be free for everyone to use and enjoy.**
+Create a deploy.bat script with the following content:
 
-The reason for the selling exception is that a significant amount of time was spend over multiple years to develop this software.
-A paid hosted version which will be identical in features and code base to the software offered in this repository will
-likely be released in the future (including all features needed to sell a hosted version as they might also be useful for personal use).
-This will not only benefit me personally but also everyone who self-hosts this software as any profits made through selling the hosted option
-allow me to spend more time developing and improving the software for everyone. Selling exceptions are [approved by Richard Stallman](http://www.gnu.org/philosophy/selling-exceptions.en.html) and the
-common clause license is very permissive (see the [FAQ](https://commonsclause.com/)).
+```bat
+@echo off
+REM filepath: c:\Users\Abe-Dev\Documents\Github\tandoor-recipes\deploy.bat
+
+echo === Building Docker Image ===
+docker build -t tandoor-local .
+
+echo === Tagging Docker Image ===
+docker tag tandoor-local us-east4-docker.pkg.dev/tandoor-recipes-40b2a/tandoor-repo/tandoor:latest
+
+echo === Pushing Docker Image to Google Container Registry ===
+docker push us-east4-docker.pkg.dev/tandoor-recipes-40b2a/tandoor-repo/tandoor:latest
+
+echo === Deploying Main Service to Google Cloud Run ===
+gcloud run deploy tandoor ^
+  --image us-east4-docker.pkg.dev/tandoor-recipes-40b2a/tandoor-repo/tandoor:latest ^
+  --region us-east4 ^
+  --allow-unauthenticated ^
+  --port 8080 ^
+  --env-vars-file env_vars.yaml ^
+  --cpu 1 ^
+  --memory 1024Mi ^
+  --min-instances 1 ^
+  --max-instances 10 ^
+  --timeout 300 ^
+  --platform managed
+
+echo === Deployment Complete ===
+echo Your application should be available at the URL shown above.
+```
+
+## Deployment Steps
+
+1. **Configure Google Cloud:**
+   ```bash
+   gcloud auth login
+   gcloud config set project tandoor-recipes-40b2a
+   ```
+
+2. **Create Google Cloud Artifact Registry:**
+   ```bash
+   gcloud artifacts repositories create tandoor-repo --repository-format=docker --location=us-east4
+   ```
+
+3. **Configure Docker for Google Cloud:**
+   ```bash
+   gcloud auth configure-docker us-east4-docker.pkg.dev
+   ```
+
+4. **Deploy Tandoor Recipes:**
+   ```bash
+   deploy.bat
+   ```
+
+5. **Set Up Google OAuth:**
+   - Go to Google Cloud Console → APIs & Services → Credentials
+   - Create an OAuth 2.0 Client ID for Web Application
+   - Set Authorized JavaScript Origins: `https://tandoor-59868711850.us-east4.run.app`
+   - Set Authorized Redirect URIs: `https://tandoor-59868711850.us-east4.run.app/accounts/google/login/callback/`
+   - Copy Client ID and Secret
+   - Access your deployed Tandoor admin page
+   - Go to Sites → Add a new site with domain `tandoor-59868711850.us-east4.run.app`
+   - Go to Social Applications → Add a Google provider with your Client ID and Secret
+   - Add your site to the chosen sites
+
+6. **Set Up Email for Invitations:**
+   - Create an App Password in your Google Account Security settings
+   - Update env_vars.yaml with your email settings
+   - Redeploy the application
+
+## Troubleshooting
+
+If you encounter issues:
+
+1. **Database Connection Errors:**
+   - Verify Supabase connection parameters
+   - Check that the regex patch is applied correctly
+
+2. **Social Login Button Missing:**
+   - Verify Site ID in admin interface
+   - Check OAuth configuration in Google Cloud Console
+   - Ensure the social app is associated with your site
+
+3. **Email Sending Fails:**
+   - Verify app password is correct
+   - Check email configuration in env_vars.yaml
+   - Test with debug mode enabled
+
+## Maintenance
+
+To update your deployment:
+
+1. Make changes to your configuration files
+2. Run deploy.bat to rebuild and redeploy the application
+
+Enjoy your self-hosted Tandoor Recipes installation!
