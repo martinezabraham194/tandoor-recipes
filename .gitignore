@@ -84,5 +84,8 @@ vue3/.vite
 # Configs
 vetur.config.js
 venv/
-.idea/easy-i18n.xml
-cookbook/static/vue3
+firebase-service-account.json
+env_vars.yaml
+gcloud-sso.json
+local-deploy.bat
+supabase-ca-certificate.crt
